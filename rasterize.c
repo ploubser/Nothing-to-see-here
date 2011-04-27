@@ -3,22 +3,62 @@
 void toMatrix(char *Filename)
 {
     FILE *ImageFile;
+    FILE *dptr;
     BITMAPFILEHEADER bmfh;
     BITMAPINFOHEADER bmih;
     unsigned char *Array;
+    unsigned char **Mat;
+    int i,j,k,count;
   
     ImageFile = fopen(Filename, "rb");
 
     fread(&bmfh, sizeof(BITMAPFILEHEADER), 1, ImageFile);
     fread(&bmih, sizeof(BITMAPINFOHEADER), 1, ImageFile);
     
-    Array = (unsigned char*)calloc(((bmih.biHeight * bmih.biWidth) * 3), sizeof(unsigned char));
+    Array = (unsigned char*)calloc(((bmih.biSizeImage) * 3), sizeof(unsigned char));
+    Mat = (unsigned char**)malloc(bmih.biHeight * bmih.biWidth * 3 * sizeof(unsigned char*));
+    for (i = 0; i < bmih.biHeight; i++)
+    	Mat[i]=(unsigned char*)(malloc(bmih.biWidth*sizeof(unsigned char)));
 
-    int i;
+    for(i = 0; i < ((bmih.biSizeImage) * 3); i += 3)
+      fread(&Array[i], sizeof(unsigned char[3]), 1, ImageFile);
 
-    for(i = 0; i < ((bmih.biHeight * bmih.biWidth) * 3); i += 3)
-        fread(&Array[i], sizeof(unsigned char[3]), 1, ImageFile);
+    dptr = fopen("dump.txt","w");
 
+   count = 0;
+   printf("Creating Matrix...\n\n");
+   for (i = bmih.biHeight-1; i >= 0; i--)
+    {
+    	for (j = 0; j < bmih.biWidth*3; j=j+3)
+	{
+		printf("i = %d  j = %d\n",i,j);
+                Mat[i][j] = Array[count];
+		count++;
+		Mat[i][j+1] = Array[count];
+		count++;
+                Mat[i][j+2] = Array[count];
+		count++;
+	}
+	for (k = 0; k < (bmih.biWidth % 4); k++)
+		count++;
+    }
+    printf("Printing to file...\n\n");
+    for (i = 0; i < bmih.biHeight; i++)
+    {
+        for (j = 0; j < bmih.biWidth*3; j=j+3)
+        {
+		printf("i = %d  j = %d\n",i,j);
+		printf("[%d]", Mat[i][j]);
+                printf("[%d]", Mat[i][j+1]);
+                printf("[%d]\n", Mat[i][j+2]); 
+		
+		fprintf(dptr, "[%d]", Mat[i][j]);
+           	fprintf(dptr, "[%d]", Mat[i][j+1]);
+           	fprintf(dptr, "[%d]\n", Mat[i][j+2]);	
+	}
+	fprintf(dptr, "\n");
+    }
+    fclose(dptr);
     fclose(ImageFile);
     
     if(bmfh.bfType == 0x4D42)
